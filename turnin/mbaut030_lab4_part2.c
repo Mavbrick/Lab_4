@@ -12,8 +12,8 @@
 #include "simAVRHeader.h"
 #endif
 
-enum States { Start, Wait, Inc, Dec, Reset } State;
-unsigned char count = 0x00;
+enum States { Start, Wait, Check, Inc, Dec, Reset } State;
+unsigned char count;
 
 void Tick() {
 	switch(State) {
@@ -22,61 +22,72 @@ void Tick() {
 		break;
 
 		case Wait:
-			if((PINA & 0x03) == 0x01) {
+			if(PINA & 0x01) {
 				State = Inc;
 			}
-			else if((PINA & 0x03) == 0x02) {
+			else if(PINA & 0x02) {
 				State = Dec;
 			}
 			else if((PINA & 0x03) == 0x03) {
 				State = Reset;
 			}
-			else {
+		break;
+
+		case Check:
+			if(PINA == 0x00) {
 				State = Wait;
 			}
 		break;
 
 		case Inc:
-			State = Wait;
-		break;
-
-		case Dec:
-			State = Wait;
-		break;
-
-		case Reset:
-			if((PINA & 0x03) == 0x03) {
+			if(PINA & 0x00) {
+				State = Wait;
+			}
+			else if((PINA & 0x03) == 0x03) {
 				State = Reset;
 			}
 			else {
-				State = Wait;
+				State = Check;
 			}
 		break;
-			
-		default:
+
+		case Dec:
+                        if(PINA & 0x00) {
+                                State = Wait;
+                        }
+                        else if((PINA & 0x03) == 0x03) {
+                                State = Reset;
+                        }
+                        else {
+                                State = Check;
+                        }
+		break;
+
+		case Reset:
+			State = Wait;
 		break;
 
 
 	}
 
 	switch(State) {
-		case Wait:	
+		case Start:	
+		break;
+
+		case Wait:
+		break;
+
+		case Check:
 		break;
 
 		case Inc:
-		if(count >= 0x09) {
-			count = 0x09;
-		}
-		else {
+		if(count < 0x09) {
 			count = count + 0x01;
 		}
 		break;
 
 		case Dec:
-		if(count <= 0x00) {
-			count = 0x00;
-		}
-		else {
+		if(count > 0x00) {
 			count = count - 0x01;
 		}
 		break;
@@ -85,15 +96,13 @@ void Tick() {
 		count = 0x00;
 		break;
 
-		default:
-		break;
 	}
 
 }
 
 int main(void) {
     /* Insert DDR and PORT initializations */
-	DDRA = 0x00; PORTA = 0xFF;
+	DDRA = 0x00; PORTA = 0x00;
 	DDRC = 0xFF; PORTC = 0x00;
     /* Insert your solution below */
 
