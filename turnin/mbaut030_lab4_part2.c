@@ -12,61 +12,93 @@
 #include "simAVRHeader.h"
 #endif
 
-enum States { Start, Wait, Check, Inc, Dec, Reset } State;
-unsigned char count;
+enum States { Start, Inc, Dec, Reset, Wait} State;
+unsigned char count = 0x00;
+unsigned char prevState = 0x00;
 
 void Tick() {
 	switch(State) {
+		
 		case Start:
-			State = Wait;
-		break;
-
-		case Wait:
-			if(PINA & 0x01) {
-				State = Inc;
-			}
-			else if(PINA & 0x02) {
-				State = Dec;
-			}
-			else if((PINA & 0x03) == 0x03) {
+			if(PINA == 0x03) {
 				State = Reset;
 			}
-		break;
-
-		case Check:
-			if(PINA == 0x00) {
-				State = Wait;
+			else if(PINA == 0x02) {
+				State = Dec;
+			}
+			else if(PINA == 0x01) {
+				State = Inc;
+			}
+			else {
+				State = Start;
 			}
 		break;
 
 		case Inc:
-			if(PINA & 0x00) {
-				State = Wait;
+			if(PINA == 0x00) {
+				State = Start;
 			}
-			else if((PINA & 0x03) == 0x03) {
+			else if(PINA == 0x02) {
+				State = Dec;
+			}
+			else if(PINA == 0x03) {
 				State = Reset;
 			}
 			else {
-				State = Check;
+				State = Wait;
 			}
 		break;
 
 		case Dec:
-                        if(PINA & 0x00) {
-                                State = Wait;
+                        if(PINA == 0x00) {
+                                State = Start;
                         }
-                        else if((PINA & 0x03) == 0x03) {
-                                State = Reset;
+                        else if(PINA == 0x01) {
+                                State = Inc;
                         }
-                        else {
-                                State = Check;
-                        }
+			else if(PINA == 0x03) {
+				State = Reset;
+			}
+			else {
+				State = Wait;
+			}
 		break;
 
 		case Reset:
-			State = Wait;
+			if(PINA == 0x00) {
+				State = Start;
+			}
+			else if(PINA == 0x01) {
+				State = Inc;
+			}
+			else if(PINA == 0x02) {
+				State = Dec;
+			}
+			else {
+				State = Wait;
+			}
 		break;
 
+                case Wait:
+                        if(PINA == 0x03) {
+                                State = Reset;
+                        }
+                        else if(PINA == 0x00) {
+                                State = Start;
+                        }
+                        else if(PINA == 0x01 && prevState == 0x02) {
+                                State = Inc;
+                        }
+                        else if(PINA == 0x02 && prevState == 0x01) {
+                                State = Dec;
+                        }
+                        else {
+                                State = Wait;
+                        }
+                break;
+
+		default:
+		break;		
 
 	}
 
@@ -74,26 +106,29 @@ void Tick() {
 		case Start:	
 		break;
 
-		case Wait:
-		break;
-
-		case Check:
-		break;
-
 		case Inc:
-		if(count < 0x09) {
+		if(count < 9) {
 			count = count + 0x01;
 		}
+		prevState = 0x01;
 		break;
 
 		case Dec:
-		if(count > 0x00) {
+		if(count > 0) {
 			count = count - 0x01;
 		}
+		prevState = 0x02;
 		break;
 
 		case Reset:
 		count = 0x00;
+		prevState = 0x00;
+		break;
+
+		case Wait:
+		break;		
+
+		default:
 		break;
 
 	}
@@ -102,13 +137,12 @@ void Tick() {
 
 int main(void) {
     /* Insert DDR and PORT initializations */
-	DDRA = 0x00; PORTA = 0x00;
+	DDRA = 0x00; PORTA = 0xFF;
 	DDRC = 0xFF; PORTC = 0x00;
     /* Insert your solution below */
 
-    State = Start;
-    count = 0x07;    
-
+    State = Start;    
+    count = 0x07;
     while (1) {
 	Tick();
 	PORTC = count;
