@@ -76,15 +76,21 @@ void Tick() {
     	case Start:
     	PORTB = 0x00;
         break;
+            
     	case Lock:
         PORTB = 0x00;
         break;
+            
     	case Unlock_One:
         break;
-   	case Wait_One:
+            
+   	    case Wait_One:
         break;
+            
     	case Unlock_Two:
         PORTB = 0x01;
+        break;  
+            
     	case Wait_Two:
         break;
     }
